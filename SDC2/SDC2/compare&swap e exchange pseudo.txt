@@ -1,0 +1,38 @@
+int bolt = 0;
+
+childProces(){
+while(compare&swap(&bolt, 0, 1) == 1)//busy weaiting
+
+//CRITICAL SECTION
+bolt = 0;
+}
+
+
+
+int comare&swap(int * reg, int oldval, int newval) { //deve essere atomica
+int val = *reg;
+if (val == oldval)
+	*reg = newval;
+return val;
+
+}
+
+
+--------------------------------------
+
+int bolt = 0;
+
+childProcess() {
+int key = 1;
+do exchange(&key, &bolt) while(key != 0); //busy waiting
+//CRITICAL SECTION
+bolt = 0;
+
+}
+
+
+void exchange(int* reg, int* mem) {
+int temp = *reg;
+*reg = *mem;
+*mem = temp;
+}
