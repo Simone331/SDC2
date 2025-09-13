@@ -19,7 +19,13 @@ int write_to_pipe(int fd, const void *data, size_t data_len) {
      * - assicurarsi che tutti i 'data_len' byte siano stati scritti
      * - restituire il numero di bytes scritti
      **/
-    
+    int ret;
+    while (written_bytes< data_len){
+        ret= write (fd, data + written_bytes, data_len-written_bytes);
+        if (ret == -1 && errno == EINTR) continue;
+        if (ret == -1) handle_error("Errore nella scrittura su pipe");
+        written_bytes += ret;
+    }
     return written_bytes; 
 }
 
@@ -37,6 +43,14 @@ int read_from_pipe(int fd, void *data, size_t data_len) {
      * - assicurarsi che tutti i 'data_len' bytes siano stati letti
      * - restituire il numero di bytes letti
      **/
+    int ret;
+    while (read_bytes< data_len){
+        ret= read (fd, data + read_bytes, data_len - read_bytes);
+        if (ret== -1 && errno == EINTR) continue;
+        if (ret == -1) handle_error("Errore nella lettura da pipe");
+        if (ret == 0) return -1;
+        read_bytes += ret;
+    }
 
     return read_bytes;
 }

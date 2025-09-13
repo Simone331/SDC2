@@ -82,8 +82,7 @@ int main(int argc, char* argv[]) {
         args[i].item = item;
         args[i].start = i*STEP;
         args[i].end = (i+1)*STEP;
-        args[i].counter = &counters[i];
-        
+        args[i].counter = &counters[i]; 
         ret = pthread_create(&threads[i], NULL, thread_routine, &args[i]);
         if(ret) handle_error_en(ret,"Cannot create thread");
     }

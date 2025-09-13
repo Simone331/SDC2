@@ -126,7 +126,11 @@ int main(int argc, char* argv[]) {
     ret= sem_init(&consumer_sem,0,1);
     if(ret ) handle_error("error initializing consumer sem");
     ret= sem_init(&producer_sem,0,1);
-    if(ret ) handle_error("error initializing producer sem"); 
+    if(ret ) handle_error("error initializing producer sem");
+    ret= sem_init(&empty_sem,0,BUFFER_LENGTH);
+    if(ret ) handle_error("error initializing empty sem");
+    ret= sem_init(&filled_sem,0,0);
+    if(ret ) handle_error("error initializing filled sem"); 
 
     /***/
 
@@ -146,7 +150,20 @@ int main(int argc, char* argv[]) {
      *   dovrà attendere la terminazione di ogni thread
      * 
      */
-
+    pthread_t threads[THREAD_COUNT];
+    int i = 0;
+    for(i=0; i<THREAD_COUNT; i++){
+        thread_args_t *args = calloc(sizeof(thread_args_t));
+        if(args == NULL) handle_error("error allocating memory for thread args");
+        args->idx = i;
+        if(i < THREAD_COUNT/2){
+            args->role = PROD_ROLE;
+        } else {
+            args->role = CONS_ROLE;
+        }
+        ret = pthread_create(&threads[i], NULL, thread_routine, (void*)args);
+        if(ret) handle_error_en(ret, "error creating thread");
+    }
 
     /***/
 
@@ -158,7 +175,10 @@ int main(int argc, char* argv[]) {
      * - attendere la terminazione dei thread lanciati in precedenza
      * - gestire gli errori
      */
-
+    for(i=0; i<THREAD_COUNT; i++){
+        ret = pthread_join(threads[i], NULL);
+        if(ret) handle_error_en(ret, "error joining thread");
+    }
     /***/
 
     /**
@@ -168,7 +188,14 @@ int main(int argc, char* argv[]) {
      * - rilasciare i semafori inizializzati in precedenza
      * - gestire gli errori
      */
-
+    ret= sem_destroy(&consumer_sem);
+    if(ret ) handle_error("error destroying consumer sem");
+    ret= sem_destroy(&producer_sem);
+    if(ret ) handle_error("error destroying producer sem");
+    ret= sem_destroy(&empty_sem);
+    if(ret ) handle_error("error destroying empty sem");
+    ret= sem_destroy(&filled_sem);
+    if(ret ) handle_error("error destroying filled sem");
 
     /***/
 

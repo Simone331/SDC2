@@ -73,9 +73,22 @@ int main(int argc, char* argv[]) {
      * - gestire eventuali interruzioni ed errori
      *  
      * */
+    pthread_t threads[THREADS];
     int counters[THREADS];
-    
-    
+    thread_args_t args[THREADS];
+    for(i=0; i<THREADS;++i){
+        args[i].array=array;
+        args[i].item=item;
+        args[i].start=i*STEP;
+        args[i].end=(i+1)*STEP;
+        args[i].counter=&counters[i];
+        ret= pthread_create(&threads[i],NULL,thread_routine, &args[i]);
+        if(ret) handle_error_en(ret,"Cannot create thread");
+    }
+    for (i=0; i<THREADS; ++i){
+        ret= pthread_join(threads[i],NULL);
+        if(ret) handle_error_en(ret,"Cannot join thread");
+    }
     
     int aggregated = 0;
     for (i=0; i<THREADS; ++i) aggregated += counters[i];
