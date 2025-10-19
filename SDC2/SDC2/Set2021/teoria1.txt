@@ -1,0 +1,4 @@
+le politiche di accesso sono di 3 tipi:
+1) DAC- discretionary access control il proprietario della risorsa decide chi può accedere
+2) MAC- mandatory access control la policy è impostata centralmente e ho il controllo in base alla mia identità
+3) RBAC - role based access control permessi assegnati ai ruoli un utente può avere più ruoli

@@ -14,6 +14,13 @@ void send_over_pipe(int write_desc, char* buf, size_t data_len) {
      * - gestire eventuali interruzioni ed errori
      * - assicurarsi che tutti i byte siano stati scritti
      */
+     int byte_sent=0 , ret;
+     while (byte_sent<data_len){
+        ret= write(write_desc, buf+ byte_sent, data_len-byte_sent);
+        if (ret == -1 && errno== EINTR) continue;
+        ERROR_HELPER(ret, "errore nella write"); 
+        byte_sent+=ret;
+     }
 
 }
 
@@ -32,6 +39,19 @@ int read_from_pipe(int read_desc, char* buf, size_t buf_len) {
      *
      * Il delimitatore di fine messaggio è il terminatore di riga '\n'.
 	 **/
+    int b_read=0 , ret;
+     while (1){
+        ret= read(read_desc, buf+b_read, 1);
+        
+        if (ret == -1 && errno== EINTR) continue;
+        ERROR_HELPER(ret, "errore nella read"); 
+        
+        if(ret==0) ERROR_HELPER(-1, "pipe chiusa"); 
+        
+        if (buf[b_read++] == '\n') break;
+        if (b_read == buf_len) ERROR_HELPER(-1, "Messaggio troppo lungo");
+     }
+  return b_read;
 
 }
 
@@ -85,6 +105,43 @@ int main(int argc, char* argv[]) {
 	 * - chiudere i descrittori di pipe in fase di uscita
      * - gestire eventuali errori
      */
+    int ret, first_pipe[2], second_pipe[2];
+    ret= pipe(first_pipe);
+    ERROR_HELPER(ret, "pipe first_pipe");
+    ret= pipe(second_pipe);
+    ERROR_HELPER(ret, "pipe second_pipe");
+    pid_t pid= fork();
+    if (pid== -1){
+        ERROR_HELPER(-1, "fork");
+    } else if (pid == 0){
+        ret= close(first_pipe[0]);
+        ERROR_HELPER(ret, "close first_pipe[0] child");
+        ret= close(second_pipe[1]);
+        ERROR_HELPER(ret, "close second_pipe[1] child");
+        child_loop(first_pipe[1], second_pipe[0]);
+         ret = close(first_pipe[1]);
+        ERROR_HELPER(ret, "[figlio] impossibile chiudere first_pipe[1]");
+
+        ret = close(second_pipe[0]);
+        ERROR_HELPER(ret, "[figlio] impossibile chiudere second_pipe[0]");
+    }else{
+        ret= close(first_pipe[1]);
+        ERROR_HELPER(ret, "close first_pipe[1] parent");
+        ret= close(second_pipe[0]);
+        ERROR_HELPER(ret, "close second_pipe[0] parent");
+        
+        parent_loop(first_pipe[0], second_pipe[1]);
+        ret= wait(0);
+        ERROR_HELPER(ret, "wait del figlio");
+        
+        
+        ret= close(first_pipe[0]);
+        ERROR_HELPER(ret, "close first_pipe[0] parent");
+        ret= close(second_pipe[1]);
+        ERROR_HELPER(ret, "close second_pipe[1] parent"); 
+        
+    }
+    
 
 
     return 0;

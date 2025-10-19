@@ -1,0 +1,1 @@
+invertendo cs e num[i] := 0 sparisce il processo dalla fila mentre è in sezione critica. la mutua esclusione non è garantita.

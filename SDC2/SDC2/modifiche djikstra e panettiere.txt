@@ -8,4 +8,5 @@ PANETTIERE:
 se viene levato num[i] := 0 alla fine ME e ND sono garantite, NS no
 alla riga 7 sostituendo l’operatore logico AND con l’operatore logico OR nel ciclo in cui controllo se sono in num più piccolo ME garantita, ND potenzialmente no e NS no
 se num[i] := 0 alla fine viene sostituito con num[i] := 1 ME e ND garantiti, NS potenzialmente violata
-invertendo CS e num[i] := 0 ME non garantita
+
+-invertendo CS e num[i] := 0 sparisce il processo dalla fila mentre è in sezione critica. ME non garantita

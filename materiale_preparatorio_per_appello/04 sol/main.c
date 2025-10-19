@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
         ERROR_HELPER(ret, "[figlio] impossibile chiudere second_pipe[0]");
     } else {
         // processo padre
-        ret = close(first_pipe[1]);
+        ret = close(first_pipe[1]);     
         ERROR_HELPER(ret, "[padre] impossibile chiudere first_pipe[1]");
 
         ret = close(second_pipe[0]);

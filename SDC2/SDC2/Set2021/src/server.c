@@ -48,6 +48,23 @@ void connection_handler(int socket_desc, struct sockaddr_in* client_addr) {
      * - Gestire gli errori.
      *
      */
+     do{
+        ret=sem_wait(sem_connections);
+     }while (ret==-1 && errno == EINTR);
+     if (ret == -1) handle_error("sem_wait fallita");
+     r=0;
+     while (r< (int)buf_len){
+        ret= recv(socket_desc, buf+r, 1, 0);
+        if (ret == -1 && errno == EINTR) continue;
+        if (ret == -1) handle_error("recv fallita");
+        if (ret == 0)  handle_error("client ha chiuso la connessione durante la recv");
+        r+=ret;
+        if(buf[r-1]=='\0')break;
+     }
+     if (r== (int)buf_len && buf[r-1] != '\0')
+     handle_error("messaggio del client troppo lungo");
+     
+     
 
 
 
@@ -70,6 +87,15 @@ void connection_handler(int socket_desc, struct sockaddr_in* client_addr) {
      * - Gestire gli errori.
      *
      */
+    size_t to_send = strlen(buf)+1;
+    size_t sent=0;
+    while (sent< to_send){
+      ret = send(socket_desc, buf + sent, to_send-sent, 0);
+      if (ret==-1 && errno== EINTR) continue;
+      if (ret == -1) handle_error(" send fallita");
+      sent += (size_t)ret;
+    }
+    
 
 
 
@@ -101,6 +127,7 @@ void multi_process_server(int server_desc) {
          * - Gestire eventuali errori.
          *
          */
+        
 
         int client_desc = 0; // DA MODIFICARE 
 

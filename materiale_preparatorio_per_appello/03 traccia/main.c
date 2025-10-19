@@ -99,6 +99,29 @@ void child(int child_id, sem_t* named_semaphore) {
      * - infine, chiudere i descrittori rimanenti ed il named semaphore
      * - gestire eventuali errori
      **/
+    int ret = close(pipefd[0]);
+    if(ret) handle_error("Errore nella chiusura del descrittore di lettura della pipe");
+
+    int i;
+    for (i = 0; i < MSG_COUNT; i++) {
+        create_msg(data, MSG_SIZE, child_id);
+        ret = sem_wait(named_semaphore);
+        if(ret) handle_error("Errore nella wait");
+
+        write_to_pipe(pipefd[1], data, MSG_SIZE* sizeof(int));
+
+        ret= sem_post(named_semaphore);
+        if(ret) handle_error("Errore nella post");
+
+        printf("Process %d sent msg #%d\n", child_id, i);
+
+    }
+    ret=  close(pipefd[1]);
+    if(ret) handle_error("Errore nella chiusura del descrittore di scrittura della pipe");
+    ret= sem_close( named_semaphore);
+    if(ret) handle_error("Errore nella chiusura del named semaphore");
+
+
     
 }
 
@@ -122,7 +145,30 @@ void parent() {
      *   i processi figlio, e rimuovere il named semaphore
      * - gestire eventuali errori
      **/
-     
+    int ret= close(pipefd[1]);
+    if(ret) handle_error( "errore");
+    //int read_from_pipe(int fd, void *data, size_t data_len)
+    for(int i=0; i< CHILDREN_COUNT*MSG_COUNT ; i++){
+        ret= read_from_pipe(pipefd[0], data, MSG_SIZE * sizeof(int));
+        if(ret == -1) handle_error("Errore nella lettura da pipe");
+        printf("Main process received msg #%d from process %d\n", i, data[0]);
+        if (!is_msg_ok(data, MSG_SIZE))
+            printf("WARN: msg #%d is malformed!\n", i);
+    }
+    ret= close(pipefd[0]);
+    if(ret) handle_error("Errore nella chiusura del descrittore di lettura della pipe");
+    int i;
+    int status;
+    for(i=0; i< CHILDREN_COUNT; i++){
+        ret= wait(&status);
+        if(ret == -1) handle_error("Errore nella wait");
+        if(WEXITSTATUS(status)){
+            handle_error("ERROR: child process died unexpectedly");
+        }
+
+    }
+    ret= sem_unlink(SEMAPHORE_NAME);
+    if(ret) handle_error("Errore nella rimozione del named semaphore");
 }
 
 int main(int argc, char* argv[]) {
@@ -144,6 +190,24 @@ int main(int argc, char* argv[]) {
      *   funzione parent()
      * - gestire eventuali errori
      **/
+    sem_unlink(SEMAPHORE_NAME);
+    int ret= pipe(pipefd);
+    if(ret) handle_error("Errore nella creazione della pipe");
+    sem_t* named_semaphore= sem_open(SEMAPHORE_NAME, O_CREAT | O_EXCL, 0666,1);
+    if(named_semaphore == SEM_FAILED) handle_error("Errore nella creazione del named semaphore");
+    pid_t pid;
+    for (int i=0; i< CHILDREN_COUNT; i++){
+        pid= fork();
+        if(pid ==-1) handle_error("Errore nella fork");
+        if(pid == 0){
+            // processo figlio
+            child(i, named_semaphore);
+            exit(EXIT_SUCCESS);
+        }
+    }
+    ret = sem_close(named_semaphore);
+    if(ret) handle_error("Errore nella chiusura del semaforo");
+    parent();
     
     return EXIT_SUCCESS;
 }
