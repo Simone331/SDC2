@@ -8,18 +8,45 @@
 #include <sys/stat.h>  // mkfifo()
 
 #include "common.h"
-
+int readOneByOne(int fd, char* buf, char separator);
+void writeMsg(int fd, char* buf, int size);
 /** Echo component **/
+static void cleanFIFOs(int echo_fifo, int client_fifo) {
+
+    /** [TO DO] Method to close and remove the two FIFOs
+     *
+     * - We should run cleanup code also when the Echo module detects that the Client
+     *   has closed 'client_fifo' unexpectedly. FIFOs remain in the filesystem if
+     *   we do not perform unlink() on them once all the descriptors have been closed.
+     * - Close the two fifos
+     * - Destroy the two fifos
+     * */
+
+    // close the descriptors
+    int ret = close(echo_fifo);
+    if(ret) handle_error("Cannot close Echo FIFO");
+    ret = close(client_fifo);
+    if(ret) handle_error("Cannot close Client FIFO");
+
+    // destroy the two FIFOs
+    ret = unlink(ECHO_FIFO_NAME);
+    if(ret) handle_error("Cannot unlink Echo FIFO");
+    ret = unlink(CLNT_FIFO_NAME);
+    if(ret) handle_error("Cannot unlink Client FIFO");
+}
+
 int main(int argc, char* argv[]) {
     int ret;
     int echo_fifo, client_fifo;
-    int bytes_left, bytes_sent, bytes_read;
+    int bytes_read;
     char buf[1024];
 
     char* quit_command = QUIT_COMMAND;
     size_t quit_command_len = strlen(quit_command);
 
     // Create the two FIFOs
+    unlink(ECHO_FIFO_NAME);
+    unlink(CLNT_FIFO_NAME);
     ret = mkfifo(ECHO_FIFO_NAME, 0666);
     if(ret) handle_error("Cannot create Echo FIFO");
     ret = mkfifo(CLNT_FIFO_NAME, 0666);
@@ -45,8 +72,6 @@ int main(int argc, char* argv[]) {
     // send welcome message
     sprintf(buf, "Hi! I'm an Echo process based on FIFOs. I will send you back through a FIFO whatever"
             " you send me through the other FIFO, and I will stop and exit when you send me %s.\n", quit_command);
-    bytes_left = strlen(buf);
-    bytes_sent = 0;
     /** INSERT CODE HERE TO SEND THE MESSAGE THROUGH THE ECHO FIFO
      *
      * Suggestions:
@@ -82,8 +107,7 @@ int main(int argc, char* argv[]) {
         if (bytes_read == quit_command_len && !memcmp(buf, quit_command, quit_command_len)) break;
 
         // ... or if I have to send the message back through the Echo FIFO
-        bytes_left = bytes_read;
-        bytes_sent = 0;
+      
         /** INSERT CODE HERE TO SEND THE MESSAGE THROUGH THE ECHO FIFO
          *
          * Suggestions:
@@ -101,9 +125,6 @@ int main(int argc, char* argv[]) {
     if(ret) handle_error("Cannot close Client FIFO");
 
     // destroy the two FIFOs
-    ret = unlink(ECHO_FIFO_NAME);
-    if(ret) handle_error("Cannot unlink Echo FIFO");
-    ret = unlink(CLNT_FIFO_NAME);
-    if(ret) handle_error("Cannot unlink Client FIFO");
+    cleanFIFOs(echo_fifo, client_fifo);
     exit(EXIT_SUCCESS);
 }

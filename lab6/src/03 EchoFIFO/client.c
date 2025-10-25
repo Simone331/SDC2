@@ -8,6 +8,9 @@
 #include <sys/stat.h>  // mkfifo()
 
 #include "common.h"
+int readOneByOne(int fd, char* buf, char separator);
+void writeMsg(int fd, char* buf, int size);
+
 
 /** Client component **/
 int main(int argc, char* argv[]) {

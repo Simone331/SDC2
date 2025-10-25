@@ -20,17 +20,22 @@ int readOneByOne(int fd, char* buf, char separator) {
      *   the FIFO unexpectedly: this is an error that should be
      *   dealt with!
      **/
-     int r=0;
-     while (1){
-     	ret=read(fd,buf+r,1);
-     	if (ret==-1){
-     		if(errno=EINTR) continue;
-     		handle_error("readOneByOne");
-		 }
-		if (ret==0) handle_error("strange readOneByOne");
-     	if (buf[r]=='/n') return r;
-     	r++;
- 	}
+    int bytes_read = 0;
+    do {
+        ret = read(fd, buf + bytes_read, 1);
+        if (ret == -1 && errno == EINTR) continue;
+        if (ret == -1) handle_error("Cannot read from FIFO");
+        if (ret ==  0){
+            printf("%s\n",buf);
+            fflush(stdout);
+             handle_error_en(bytes_read,"Process has closed the FIFO unexpectedly! Exiting...");
+        }
+        // we use post-increment on bytes_read so that we first read the
+        // byte that has just been written, then we do the increment
+    } while(buf[bytes_read++] != separator);
+    printf("Read %d bytes\n",bytes_read);
+    fflush(stdout);
+    return bytes_read;
     
 
 }
